@@ -104,7 +104,7 @@ class VoteHistoryChart extends ChartWidget
             $currentDate->addDay();
         }
 
-        return $this->formatChartData($labels, $data);
+        return $this->formatChartData($labels, $this->toCumulativeTotals($data));
     }
 
     protected function getWeeklyData($query): array
@@ -125,7 +125,7 @@ class VoteHistoryChart extends ChartWidget
             $data[] = $weekVotes->count();
         }
 
-        return $this->formatChartData($labels, $data);
+        return $this->formatChartData($labels, $this->toCumulativeTotals($data));
     }
 
     protected function getMonthlyData($query): array
@@ -146,7 +146,16 @@ class VoteHistoryChart extends ChartWidget
             $data[] = $monthVotes->count();
         }
 
-        return $this->formatChartData($labels, $data);
+        return $this->formatChartData($labels, $this->toCumulativeTotals($data));
+    }
+
+    protected function toCumulativeTotals(array $data): array
+    {
+        $total = 0;
+        return array_map(function ($count) use (&$total) {
+            $total += $count;
+            return $total;
+        }, $data);
     }
 
     protected function formatChartData(array $labels, array $data): array
