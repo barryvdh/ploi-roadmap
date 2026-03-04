@@ -123,3 +123,52 @@ test('vote history chart fills gaps between dates', function () {
 
     $component->assertStatus(200);
 });
+
+test('vote history chart shows cumulative totals', function () {
+    $user = createAndLoginUser();
+    $secondUser = createUser();
+    $thirdUser = createUser();
+
+    $item = Item::factory()->create([
+        'user_id' => $user->id,
+    ]);
+
+    $vote1 = new Vote();
+    $vote1->user_id = $user->id;
+    $vote1->model_type = Item::class;
+    $vote1->model_id = $item->id;
+    $vote1->subscribed = false;
+    $vote1->created_at = Carbon::today()->subDays(2);
+    $vote1->save();
+
+    $vote2 = new Vote();
+    $vote2->user_id = $secondUser->id;
+    $vote2->model_type = Item::class;
+    $vote2->model_id = $item->id;
+    $vote2->subscribed = false;
+    $vote2->created_at = Carbon::today()->subDays(1);
+    $vote2->save();
+
+    $vote3 = new Vote();
+    $vote3->user_id = $thirdUser->id;
+    $vote3->model_type = Item::class;
+    $vote3->model_id = $item->id;
+    $vote3->subscribed = false;
+    $vote3->created_at = Carbon::today();
+    $vote3->save();
+
+    $chart = new VoteHistoryChart();
+    $chart->item = $item;
+    $chart->filter = '30';
+
+    $data = $chart->getData();
+    $values = $data['datasets'][0]['data'];
+
+    // Each value should be >= the previous (cumulative, always increasing)
+    for ($i = 1; $i < count($values); $i++) {
+        expect($values[$i])->toBeGreaterThanOrEqual($values[$i - 1]);
+    }
+
+    // The last value should equal the total number of votes
+    expect(end($values))->toBe(3);
+});
